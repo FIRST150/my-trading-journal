@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Pro Journal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --primary: #2d3436;
+            --accent: #6c5ce7;
+            --success: #00b894;
+            --danger: #d63031;
+            --text-gray: #636e72;
+            --border: #dfe6e9;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: var(--primary);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* --- Header & Balance --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 20px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        h1 { margin: 0; font-size: 1.5rem; font-weight: 600; }
+        .balance-card { text-align: right; }
+        .balance-label { font-size: 0.85rem; color: var(--text-gray); }
+        .balance-amount { font-size: 1.5rem; font-weight: 700; color: var(--accent); cursor: pointer; display: flex; align-items: center; justify-content: flex-end; gap: 8px;}
+        .balance-amount:hover .edit-icon { opacity: 1; }
+        .edit-icon { font-size: 0.9rem; opacity: 0.3; transition: opacity 0.3s; }
+
+        /* --- Navigation Bar --- */
+        .nav-bar {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 0;
+            background: transparent;
+        }
+
+        .nav-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            color: var(--text-gray);
+            font-weight: 500;
+            position: relative;
+            transition: color 0.3s;
+        }
+
+        .nav-item:hover {
+            color: var(--primary);
+            background-color: rgba(0,0,0,0.02);
+            border-radius: 4px 4px 0 0;
+        }
+
+        .nav-item.active {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: var(--accent);
+            border-radius: 3px 3px 0 0;
+        }
+
+        /* --- Sections --- */
+        .section { display: none; animation: fadeIn 0.4s; }
+        .section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- Common UI --- */
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.3s; }
+        .btn-primary { background-color: var(--accent); color: white; }
+        .btn-secondary { background: white; border: 1px solid var(--border); color: var(--text-gray); }
+        .btn-danger { background-color: var(--danger); color: white; }
+        
+        /* --- Table Styles --- */
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 1200px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { font-weight: 600; color: var(--text-gray); background: #fafafa; }
+        input, select { width: 100%; padding: 6px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; }
+        
+        /* --- Dashboard Styles --- */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px; }
+        .stat-card { text-align: center; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .stat-card h3 { font-size: 0.9rem; color: var(--text-gray); margin-bottom: 5px; }
+        .stat-card p { font-size: 1.4rem; font-weight: 700; color: var(--primary); margin: 0; }
+        .chart-box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+        /* --- Flowchart Styles --- */
+        .toolbar {
+            display: flex; gap: 10px; margin-bottom: 10px; background: white; padding: 10px; border-radius: 8px; flex-wrap: wrap;
+        }
+        .tool-btn {
+            padding: 8px 12px; background: #f1f2f6; border: 1px solid transparent; border-radius: 4px; cursor: pointer; font-size: 0.9rem;
+        }
+        .tool-btn:hover { background: #dfe6e9; }
+        .canvas-container-outer {
+            background: white; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex; justify-content: center;
+            background-image: radial-gradient(#dfe6e9 1px, transparent 1px); background-size: 20px 20px;
+        }
+        
+        .btn-delete { background: transparent; border: none; cursor: pointer; color: #b2bec3; transition: color 0.3s; }
+        .btn-delete:hover { color: #d63031; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Trading Pro</h1>
+        <div class="balance-card">
+            <div class="balance-label">Current Balance (Click to Edit Start Balance)</div>
+            <div class="balance-amount" id="displayBalance" onclick="editStartBalance()" title="Click to edit starting balance">
+                $50,000.00 <span class="edit-icon">✏️</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="nav-bar">
+        <div class="nav-item active" onclick="switchTab('home')">Home (Dashboard)</div>
+        <div class="nav-item" onclick="switchTab('journal')">Journal (Entry)</div>
+        <div class="nav-item" onclick="switchTab('flowchart')">Flowchart (Builder)</div>
+    </div>
+
+    <div id="home-section" class="section active">
+        <div class="dashboard-grid">
+            <div class="stat-card">
+                <h3>Total Profit/Loss</h3>
+                <p id="totalPL">$0.00</p>
+            </div>
+            <div class="stat-card">
+                <h3>Win Rate</h3>
+                <p id="winRateText">0%</p>
+            </div>
+            <div class="stat-card">
+                <h3>Best Session</h3>
+                <p id="bestSession">-</p>
+            </div>
+            <div class="stat-card">
+                <h3>Total Trades</h3>
+                <p id="totalTrades">0</p>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="chart-box" style="grid-column: 1 / -1;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <h4 style="margin:0;">Portfolio Growth</h4>
+                    <span id="growthPercent" style="font-weight:bold; color:#00b894;">+0.00%</span>
+                </div>
+                <div style="height: 300px;"><canvas id="growthChart"></canvas></div>
+            </div>
+            <div class="chart-box">
+                <h4>Win Ratio</h4>
+                <div style="height: 250px; display:flex; justify-content:center;"><canvas id="winLossChart"></canvas></div>
+            </div>
+            <div class="chart-box">
+                <h4>Monthly Performance</h4>
+                <div style="height: 250px;"><canvas id="monthlyChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="journal-section" class="section">
+        <div class="card table-container">
+            <div style="margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0;">Trade Log</h3>
+                <div>
+                    <button class="btn btn-secondary" onclick="exportCSV()">⬇ Export Excel</button>
+                    <button class="btn btn-danger" onclick="clearAllData()" style="margin-left:5px;">🗑 Reset All</button>
+                </div>
+            </div>
+            <table id="tradeTable">
+                <thead>
+                    <tr>
+                        <th style="width:40px;">No.</th>
+                        <th>Date</th>
+                        <th>Session</th>
+                        <th>Pair</th>
+                        <th>Status</th>
+                        <th>Lot</th>
+                        <th>P/L ($)</th>
+                        <th>TF</th>
+                        <th>RR</th>
+                        <th>Grade</th>
+                        <th>Link (Before)</th>
+                        <th>Link (After)</th>
+                        <th style="width:50px;">Act</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    </tbody>
+            </table>
+            <button class="btn btn-primary" onclick="addRow()" style="margin-top:15px;">+ Add Trade</button>
+        </div>
+    </div>
+
+    <div id="flowchart-section" class="section">
+        <div class="card">
+            <h3 style="margin-top:0;">Flowchart Builder</h3>
+            <p style="font-size:0.9rem; color:var(--text-gray);">Drag and drop tools to design your trading plan.</p>
+            
+            <div class="toolbar">
+                <button class="tool-btn" onclick="addRect()">⬜ Rectangle</button>
+                <button class="tool-btn" onclick="addCircle()">⚪ Circle</button>
+                <button class="tool-btn" onclick="addTriangle()">🔺 Triangle</button>
+                <button class="tool-btn" onclick="addLine()">➖ Line</button>
+                <button class="tool-btn" onclick="addText()">Abc Text</button>
+                <div style="width:1px; background:#dfe6e9; margin:0 5px;"></div>
+                <button class="tool-btn" onclick="deleteObject()" style="color:#d63031;">❌ Delete Selected</button>
+                <button class="tool-btn" onclick="clearCanvas()">🗑 Clear All</button>
+                <button class="tool-btn" onclick="saveFlowchartLocal()" style="margin-left:auto; color:var(--accent);">💾 Save Plan</button>
+            </div>
+
+            <div class="canvas-container-outer">
+                <canvas id="flowCanvas" width="1100" height="600"></canvas>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- GLOBAL SETTINGS (Editable) ---
+    let START_BALANCE = 50000; // ค่าเริ่มต้น (ถ้าไม่มีการบันทึกไว้)
+
+    // --- GLOBAL VARIABLES ---
+    let trades = [];
+    let charts = {}; 
+    let canvas; 
+
+    // --- INITIALIZATION ---
+    window.onload = function() {
+        // 1. Load Settings (Start Balance)
+        loadSettings();
+        
+        // 2. Load Journal Data
+        loadDataFromLocal();
+        if(document.getElementById('tableBody').rows.length === 0) addRow();
+        updateBalanceDisplay();
+        
+        // 3. Initialize Flowchart
+        initCanvas();
+        
+        // 4. Render Dashboard
+        renderDashboard();
+    };
+
+    // --- SETTINGS FUNCTIONS (NEW) ---
+    function editStartBalance() {
+        const userInput = prompt("Enter your starting balance ($):", START_BALANCE);
+        if (userInput !== null && !isNaN(userInput) && userInput.trim() !== "") {
+            START_BALANCE = parseFloat(userInput);
+            localStorage.setItem('myTradingSettings_v1', JSON.stringify({ startBalance: START_BALANCE }));
+            updateBalanceDisplay();
+            renderDashboard(); // Re-render graph based on new start balance
+        }
+    }
+
+    function loadSettings() {
+        const storedSettings = localStorage.getItem('myTradingSettings_v1');
+        if (storedSettings) {
+            const settings = JSON.parse(storedSettings);
+            if(settings.startBalance) START_BALANCE = settings.startBalance;
+        }
+    }
+
+    // --- NAVIGATION LOGIC ---
+    function switchTab(tabName) {
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        event.target.classList.add('active');
+        document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+
+        if (tabName === 'home') {
+            document.getElementById('home-section').classList.add('active');
+            renderDashboard();
+        } else if (tabName === 'journal') {
+            document.getElementById('journal-section').classList.add('active');
+        } else if (tabName === 'flowchart') {
+            document.getElementById('flowchart-section').classList.add('active');
+        }
+    }
+
+    // --- JOURNAL FUNCTIONS ---
+    function addRow(data = null) {
+        const tableBody = document.getElementById('tableBody');
+        const rowCount = tableBody.rows.length + 1;
+        const tr = document.createElement('tr');
+        
+        tr.innerHTML = `
+            <td>${rowCount}</td>
+            <td><input type="date" class="input-date" onchange="autoSave()"></td>
+            <td>
+                <select class="input-session" onchange="autoSave()">
+                    <option value="Asia">Asia</option>
+                    <option value="London">London</option>
+                    <option value="NY">New York</option>
+                </select>
+            </td>
+            <td><input type="text" class="input-pair" placeholder="XAUUSD" oninput="autoSave()"></td>
+            <td>
+                <select class="input-status" onchange="calculateRow(this); autoSave()">
+                    <option value="Pending">Pending</option>
+                    <option value="Win" style="color:#00b894;">Win</option>
+                    <option value="Loss" style="color:#d63031;">Loss</option>
+                </select>
+            </td>
+            <td><input type="number" step="0.01" class="input-lot" placeholder="0.01" oninput="autoSave()"></td>
+            <td><input type="number" class="input-pl" placeholder="$" onchange="updateBalanceDisplay(); autoSave()"></td>
+            <td><input type="text" class="input-tf" placeholder="H1" oninput="autoSave()"></td>
+            <td><input type="text" class="input-rr" placeholder="1:2" oninput="autoSave()"></td>
+            <td><input type="text" class="input-grade" placeholder="A" oninput="autoSave()"></td>
+            <td><input type="text" class="input-link" placeholder="Before..." oninput="autoSave()"></td>
+            <td><input type="text" class="input-link-after" placeholder="After..." oninput="autoSave()"></td>
+            <td style="text-align:center;">
+                <button class="btn-delete" onclick="deleteRow(this)">🗑</button>
+            </td>
+        `;
+        tableBody.appendChild(tr);
+
+        if (data) {
+            tr.querySelector('.input-date').value = data.date;
+            tr.querySelector('.input-session').value = data.session;
+            tr.querySelector('.input-pair').value = data.pair;
+            tr.querySelector('.input-status').value = data.status;
+            tr.querySelector('.input-lot').value = data.lot;
+            tr.querySelector('.input-pl').value = data.plAmount;
+            tr.querySelector('.input-tf').value = data.tf;
+            tr.querySelector('.input-rr').value = data.rr;
+            tr.querySelector('.input-grade').value = data.grade;
+            tr.querySelector('.input-link').value = data.link;
+            tr.querySelector('.input-link-after').value = data.linkAfter || ''; 
+            calculateRow(tr.querySelector('.input-status'));
+        }
+    }
+
+    function calculateRow(select) {
+        select.style.color = select.value === 'Win' ? '#00b894' : (select.value === 'Loss' ? '#d63031' : 'black');
+        updateBalanceDisplay();
+    }
+
+    function deleteRow(btn) {
+        if(confirm("Delete this trade?")) {
+            btn.closest('tr').remove();
+            reIndexRows();
+            updateBalanceDisplay();
+            autoSave();
+        }
+    }
+
+    function reIndexRows() {
+        document.querySelectorAll('#tableBody tr').forEach((row, i) => {
+            row.cells[0].innerText = i + 1;
+        });
+    }
+
+    function updateBalanceDisplay() {
+        trades = [];
+        let totalPL = 0;
+        
+        document.querySelectorAll('#tableBody tr').forEach(row => {
+            const status = row.querySelector('.input-status').value;
+            const rawPl = parseFloat(row.querySelector('.input-pl').value) || 0;
+            let finalPl = 0;
+            if(status === 'Win') finalPl = Math.abs(rawPl);
+            if(status === 'Loss') finalPl = -Math.abs(rawPl);
+            totalPL += finalPl;
+            trades.push({
+                date: row.querySelector('.input-date').value,
+                session: row.querySelector('.input-session').value,
+                status: status,
+                pl: finalPl
+            });
+        });
+
+        const bal = START_BALANCE + totalPL;
+        const balEl = document.getElementById('displayBalance');
+        // Update text with edit icon
+        balEl.innerHTML = '$' + bal.toLocaleString('en-US', {minimumFractionDigits: 2}) + ' <span class="edit-icon">✏️</span>';
+        balEl.style.color = bal >= START_BALANCE ? '#00b894' : '#d63031';
+    }
+
+    // --- DATA SAVING ---
+    function getTableData() {
+        const data = [];
+        document.querySelectorAll('#tableBody tr').forEach(row => {
+            data.push({
+                date: row.querySelector('.input-date').value,
+                session: row.querySelector('.input-session').value,
+                pair: row.querySelector('.input-pair').value,
+                status: row.querySelector('.input-status').value,
+                lot: row.querySelector('.input-lot').value,
+                plAmount: row.querySelector('.input-pl').value,
+                tf: row.querySelector('.input-tf').value,
+                rr: row.querySelector('.input-rr').value,
+                grade: row.querySelector('.input-grade').value,
+                link: row.querySelector('.input-link').value,
+                linkAfter: row.querySelector('.input-link-after').value 
+            });
+        });
+        return data;
+    }
+
+    function autoSave() {
+        localStorage.setItem('myTradingJournal_v2', JSON.stringify(getTableData()));
+        if(document.getElementById('home-section').classList.contains('active')) {
+            renderDashboard();
+        }
+    }
+
+    function loadDataFromLocal() {
+        const stored = localStorage.getItem('myTradingJournal_v2');
+        if (stored) {
+            const data = JSON.parse(stored);
+            if (data.length > 0) {
+                document.getElementById('tableBody').innerHTML = '';
+                data.forEach(item => addRow(item));
+            }
+        }
+    }
+
+    function clearAllData() {
+        if(confirm("⚠️ This will clear ALL trades and flowchart data. Continue?")) {
+            localStorage.removeItem('myTradingJournal_v2');
+            localStorage.removeItem('myFlowchart_v1');
+            // Note: We don't clear START_BALANCE intentionally, but you could.
+            location.reload();
+        }
+    }
+
+    function exportCSV() {
+        const data = getTableData();
+        let csv = "Date,Session,Pair,Status,Lot,PL,TF,RR,Grade,Link_Before,Link_After\n";
+        data.forEach(r => {
+            csv += `${r.date},${r.session},${r.pair},${r.status},${r.lot},${r.plAmount},${r.tf},${r.rr},${r.grade},${r.link},${r.linkAfter}\n`;
+        });
+        const link = document.createElement("a");
+        link.href = "data:text/csv;charset=utf-8," + encodeURI(csv);
+        link.download = "trading_journal.csv";
+        link.click();
+    }
+
+    // --- DASHBOARD CHARTS ---
+    function renderDashboard() {
+        let win=0, loss=0, totalPL=0;
+        let bal = START_BALANCE; 
+        let sess = {'Asia':{w:0,t:0},'London':{w:0,t:0},'NY':{w:0,t:0}};
+        const balHistory = [START_BALANCE]; 
+        const labels = ['Start'];
+        const monthly = {};
+
+        const validTrades = trades.filter(t => t.status === 'Win' || t.status === 'Loss');
+        
+        validTrades.forEach((t, i) => {
+            totalPL += t.pl;
+            bal += t.pl;
+            balHistory.push(bal);
+            labels.push(t.date || `#${i+1}`);
+
+            if(t.status === 'Win') { win++; if(sess[t.session]) sess[t.session].w++; }
+            else { loss++; }
+            if(sess[t.session]) sess[t.session].t++;
+
+            if(t.date) {
+                const m = new Date(t.date).toLocaleString('default',{month:'short'});
+                if(!monthly[m]) monthly[m] = {pl:0, wins:0, total:0};
+                monthly[m].pl += t.pl;
+                monthly[m].total++;
+                if(t.status==='Win') monthly[m].wins++;
+            }
+        });
+
+        const totalTrades = win+loss;
+        const wr = totalTrades>0 ? ((win/totalTrades)*100).toFixed(1) : 0;
+        const growth = ((bal - START_BALANCE) / START_BALANCE) * 100;
+        
+        let bestSess = '-'; let maxWR = -1;
+        for(let k in sess) {
+            if(sess[k].t > 0 && (sess[k].w/sess[k].t) > maxWR) {
+                maxWR = sess[k].w/sess[k].t;
+                bestSess = k;
+            }
+        }
+
+        document.getElementById('totalPL').innerText = (totalPL>=0?'+':'') + '$'+totalPL.toLocaleString();
+        document.getElementById('totalPL').style.color = totalPL>=0?'#00b894':'#d63031';
+        document.getElementById('winRateText').innerText = wr + '%';
+        document.getElementById('bestSession').innerText = bestSess;
+        document.getElementById('totalTrades').innerText = totalTrades;
+        
+        const gEl = document.getElementById('growthPercent');
+        gEl.innerText = (growth>=0?'+':'') + growth.toFixed(2) + '%';
+        gEl.style.color = growth>=0?'#00b894':'#d63031';
+
+        drawGrowthChart(labels, balHistory);
+        drawPieChart(win, loss);
+        drawBarChart(monthly);
+    }
+
+    function drawGrowthChart(labels, data) {
+        const ctx = document.getElementById('growthChart').getContext('2d');
+        if(charts.growth) charts.growth.destroy();
+        
+        const grad = ctx.createLinearGradient(0,0,0,300);
+        grad.addColorStop(0, 'rgba(0,184,148,0.4)');
+        grad.addColorStop(1, 'rgba(0,184,148,0.0)');
+
+        charts.growth = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    borderColor: '#00b894',
+                    backgroundColor: grad,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: {display:false} },
+                scales: { x:{grid:{display:false}, ticks:{maxTicksLimit:8}}, y:{grid:{color:'#f1f2f6'}} }
+            }
+        });
+    }
+
+    function drawPieChart(w, l) {
+        const ctx = document.getElementById('winLossChart').getContext('2d');
+        if(charts.pie) charts.pie.destroy();
+        charts.pie = new Chart(ctx, {
+            type: 'doughnut',
+            data: { labels: ['Win','Loss'], datasets: [{ data: [w,l], backgroundColor:['#00b894','#d63031'], borderWidth:0 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {position:'bottom'} } }
+        });
+    }
+
+    function drawBarChart(dataObj) {
+        const ctx = document.getElementById('monthlyChart').getContext('2d');
+        if(charts.bar) charts.bar.destroy();
+        
+        const labels = Object.keys(dataObj);
+        const pl = labels.map(k=>dataObj[k].pl);
+        const wr = labels.map(k=>(dataObj[k].wins/dataObj[k].total)*100);
+
+        charts.bar = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Profit ($)', data: pl, backgroundColor: '#6c5ce7', borderRadius:4, yAxisID:'y' },
+                    { label: 'Win Rate (%)', data: wr, borderColor:'#fab1a0', type:'line', yAxisID:'y1', tension:0.3 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    y:{display:true, position:'left'},
+                    y1:{display:true, position:'right', min:0, max:100, grid:{display:false}}
+                }
+            }
+        });
+    }
+
+    // --- FLOWCHART BUILDER ---
+    function initCanvas() {
+        canvas = new fabric.Canvas('flowCanvas');
+        const savedFlow = localStorage.getItem('myFlowchart_v1');
+        if(savedFlow) canvas.loadFromJSON(savedFlow);
+        
+        canvas.on('object:modified', saveFlowchartLocal);
+        canvas.on('object:added', saveFlowchartLocal);
+        canvas.on('object:removed', saveFlowchartLocal);
+    }
+
+    function addRect() {
+        const rect = new fabric.Rect({ left: 50, top: 50, fill: 'transparent', width: 100, height: 60, stroke: '#2d3436', strokeWidth: 2, rx: 5, ry: 5 });
+        canvas.add(rect);
+    }
+    function addCircle() {
+        const circle = new fabric.Circle({ left: 150, top: 50, fill: 'transparent', radius: 40, stroke: '#2d3436', strokeWidth: 2 });
+        canvas.add(circle);
+    }
+    function addTriangle() {
+        const tri = new fabric.Triangle({ left: 250, top: 50, fill: 'transparent', width: 80, height: 80, stroke: '#2d3436', strokeWidth: 2 });
+        canvas.add(tri);
+    }
+    function addLine() {
+        const line = new fabric.Line([50, 50, 200, 50], { left: 100, top: 200, stroke: '#2d3436', strokeWidth: 2 });
+        canvas.add(line);
+    }
+    function addText() {
+        const text = new fabric.IText('Double Click to Edit', { left: 100, top: 100, fontFamily: 'Inter', fontSize: 16, fill: '#2d3436' });
+        canvas.add(text);
+    }
+    function deleteObject() {
+        const activeObj = canvas.getActiveObject();
+        if (activeObj) canvas.remove(activeObj); else alert("Please select an object first.");
+    }
+    function clearCanvas() {
+        if(confirm("Clear Flowchart?")) {
+            canvas.clear();
+            localStorage.removeItem('myFlowchart_v1');
+        }
+    }
+    function saveFlowchartLocal() {
+        localStorage.setItem('myFlowchart_v1', JSON.stringify(canvas));
+    }
+</script>
+
+</body>
+</html>
