@@ -530,7 +530,7 @@ function buildDays() {
   const days = [];
   let workIdxB = 0, workIdxD = 0, offIdxB = 0, offIdxL = 0, offIdxD = 0;
   for (let d = 2; d <= 31; d++) {
-    const date = new Date(2025, 4, d); // May 2025
+    const date = new Date(2026, 4, d); // May 2026
     const dow = date.getDay();
     const isWork = dow >= 1 && dow <= 5;
     let meals;
@@ -584,8 +584,8 @@ function saveState() {
 
 function todayInRange() {
   const now = new Date();
-  // For demo: if today's date matches May 2025 range, use it. Otherwise use day 2.
-  if (now.getFullYear() === 2025 && now.getMonth() === 4) {
+  // For demo: if today's date matches May 2026 range, use it. Otherwise use day 2.
+  if (now.getFullYear() === 2026 && now.getMonth() === 4) {
     const d = now.getDate();
     if (d >= 2 && d <= 31) return d;
   }
@@ -827,9 +827,9 @@ function renderSummary() {
   // Weekly chart - group by week (Sunday-Saturday)
   const weeks = [[],[],[],[],[]];
   DAYS.forEach(d => {
-    const date = new Date(2025, 4, d.day);
+    const date = new Date(2026, 4, d.day);
     // Week of month based on first Sunday
-    const w = Math.floor((d.day + new Date(2025,4,1).getDay() - 1) / 7);
+    const w = Math.floor((d.day + new Date(2026,4,1).getDay() - 1) / 7);
     if (!weeks[w]) weeks[w] = [];
     weeks[w].push(d);
   });
